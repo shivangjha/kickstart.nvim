@@ -125,9 +125,7 @@ dap.listeners.before.event_exited['dapui_config'] = dapui.close
 -- stop at packages/api-server/, but cargo puts the binary in the workspace's
 -- shared target/ directory. Here the git root and the workspace root are the
 -- same directory, so `.git` is the reliable marker.
-local function iris_root()
-  return vim.fs.root(0, { '.git' }) or vim.fn.getcwd()
-end
+local function iris_root() return vim.fs.root(0, { '.git' }) or vim.fn.getcwd() end
 
 dap.configurations.rust = {
   {
