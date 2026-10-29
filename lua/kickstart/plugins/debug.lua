@@ -48,6 +48,29 @@ require('mason-nvim-dap').setup {
 -- For more information, see |:help nvim-dap-ui|
 ---@diagnostic disable-next-line: missing-fields
 dapui.setup {
+  layouts = {
+    {
+      elements = {
+        { id = 'scopes', size = 0.25 },
+        'breakpoints',
+        'stacks',
+        'watches',
+      },
+      size = 40,
+      position = 'left',
+    },
+    {
+      -- `console` is the debugged program's own stdout — the pane you actually
+      -- read when something fails at startup. Give it the bulk. The repl is
+      -- rarely useful with LLDB on Rust, so it gets a strip on the right.
+      elements = {
+        { id = 'console', size = 0.75 },
+        { id = 'repl', size = 0.25 },
+      },
+      size = 12,
+      position = 'bottom',
+    },
+  },
   -- Set icons to characters that are more likely to work in every terminal.
   --    Feel free to remove or use ones that you like more! :)
   --    Don't feel like these are good choices.
