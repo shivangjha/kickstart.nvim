@@ -866,12 +866,24 @@ do
     },
     -- You can also specify external formatters in here.
     formatters_by_ft = {
-      -- rust = { 'rustfmt' },
-      -- Conform can also run multiple formatters sequentially
-      -- python = { "isort", "black" },
+      -- biome is this repo's formatter (biome.json: 80 cols, 2-space, single
+      -- quotes) and what the pre-commit hook runs. Naming it here stops the
+      -- two attached servers (vtsls and biome) from racing to format.
+      -- Only these types: biome 1.9 refuses less, scss and markdown.
       --
-      -- You can use 'stop_after_first' to run the first available formatter from the list
-      -- javascript = { "prettierd", "prettier", stop_after_first = true },
+      -- biome-organize-imports runs after the format. Import order produces no
+      -- diagnostic, so without it the pre-commit hook silently reorders them.
+      -- Lint fixes are deliberately NOT applied here: those DO show up as
+      -- warnings, so you can see and fix them yourself.
+      javascript = { 'biome', 'biome-organize-imports' },
+      javascriptreact = { 'biome', 'biome-organize-imports' },
+      typescript = { 'biome', 'biome-organize-imports' },
+      typescriptreact = { 'biome', 'biome-organize-imports' },
+      json = { 'biome', 'biome-organize-imports' },
+      jsonc = { 'biome', 'biome-organize-imports' },
+      css = { 'biome' },
+
+      rust = { 'rustfmt' },
     },
   }
 
