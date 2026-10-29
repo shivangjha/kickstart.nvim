@@ -12,7 +12,6 @@ vim.pack.add {
   'https://github.com/nvim-neotest/nvim-nio',
   'https://github.com/mason-org/mason.nvim',
   'https://github.com/jay-babu/mason-nvim-dap.nvim',
-  'https://github.com/leoluz/nvim-dap-go',
 }
 
 -- Basic debugging keymaps, feel free to change to your liking!
@@ -41,7 +40,7 @@ require('mason-nvim-dap').setup {
   -- online, please don't ask me how to install them :)
   ensure_installed = {
     -- Update this to ensure that you have the debuggers for the langs you want
-    'delve',
+    'codelldb',
   },
 }
 
@@ -85,11 +84,34 @@ dap.listeners.after.event_initialized['dapui_config'] = dapui.open
 dap.listeners.before.event_terminated['dapui_config'] = dapui.close
 dap.listeners.before.event_exited['dapui_config'] = dapui.close
 
--- Install golang specific config
-require('dap-go').setup {
-  delve = {
-    -- On Windows delve must be run attached or it crashes.
-    -- See https://github.com/leoluz/nvim-dap-go/blob/main/README.md#configuring
-    detached = vim.fn.has 'win32' == 0,
+-- Rust: launch the api-server under codelldb.
+--
+-- There is no auto-build here. VS Code's CodeLLDB `cargo` block is an
+-- extension feature with no nvim-dap equivalent, and building synchronously
+-- would freeze the editor for the length of an api-server build. So:
+--
+--   1. cargo build -p api-server      (in :terminal)
+--   2. <F5>
+--
+-- No `env` block: the sidecar transport settings live in backend.dev.env,
+-- which the binary reads itself via --env-file.
+--
+-- The WORKSPACE root, not the nearest crate. `Cargo.toml` as a marker would
+-- stop at packages/api-server/, but cargo puts the binary in the workspace's
+-- shared target/ directory. Here the git root and the workspace root are the
+-- same directory, so `.git` is the reliable marker.
+local function iris_root()
+  return vim.fs.root(0, { '.git' }) or vim.fn.getcwd()
+end
+
+dap.configurations.rust = {
+  {
+    name = 'api-server',
+    type = 'codelldb',
+    request = 'launch',
+    program = function() return iris_root() .. '/target/debug/api-server' end,
+    args = function() return { '--env-file', iris_root() .. '/backend.dev.env' } end,
+    cwd = function() return iris_root() end,
+    stopOnEntry = false,
   },
 }
