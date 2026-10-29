@@ -761,6 +761,15 @@ do
       },
     },
 
+    -- TypeScript language server: completion, go-to-definition, type errors.
+    -- Runs one server at the repo root and resolves each package's tsconfig
+    -- itself, so the 33 tsconfigs do not each spawn a server.
+    vtsls = {},
+
+    -- Linter/formatter for JS/TS/JSON/CSS. Reads biome.json at the repo root
+    -- and uses the project's own node_modules/.bin/biome.
+    biome = {},
+
     stylua = {}, -- Used to format Lua code
 
     -- Special Lua Config, as recommended by neovim help docs
