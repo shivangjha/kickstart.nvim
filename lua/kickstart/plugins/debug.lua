@@ -50,6 +50,12 @@ require('mason-nvim-dap').setup {
 -- For more information, see |:help nvim-dap-ui|
 ---@diagnostic disable-next-line: missing-fields
 dapui.setup {
+  -- dapui defaults this to false, so long lines in the panes are truncated
+  -- rather than wrapped — and the panes are narrow, so error messages and
+  -- stack frames get cut off with no way to read the rest.
+  -- Applied to every dapui window (dapui/windows/layout.lua:181).
+  wrap = true,
+
   layouts = {
     {
       elements = {
