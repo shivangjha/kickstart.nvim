@@ -742,7 +742,24 @@ do
     --    https://github.com/mrcjkb/rustaceanvim
     --
     -- But for many setups, the LSP (`rust_analyzer`) will work just fine
-    -- rust_analyzer = {},
+    rust_analyzer = {
+      settings = {
+        ['rust-analyzer'] = {
+          -- Diagnostics from clippy, matching scripts/precommit-rust.sh.
+          -- Shares target/debug with the hook on purpose: same command means
+          -- the editor keeps those artifacts warm, so commits are faster.
+          -- No -D warnings: in the editor these should stay warnings.
+          -- workspace = false: check only the crate being edited, not all 29.
+          -- Matches precommit-rust.sh, which also runs per-crate on staged files.
+          check = { command = 'clippy', workspace = false },
+
+          -- Directories with no Rust in them. Cuts file-watcher load.
+          files = {
+            exclude = { 'node_modules', '.nx', 'postgres_data', 'logs' },
+          },
+        },
+      },
+    },
 
     stylua = {}, -- Used to format Lua code
 
