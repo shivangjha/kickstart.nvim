@@ -194,7 +194,11 @@ do
     underline = { severity = { min = vim.diagnostic.severity.WARN } },
 
     -- Can switch between these as you prefer
-    virtual_text = true, -- Text shows up at the end of the line
+    -- End of line, tagged with which server reported it. Filtered to WARN+ to
+    -- match `underline` below: rust-analyzer emits HINT diagnostics for every
+    -- inactive #[cfg] block (191 of them in this repo) and inline text for
+    -- each would drown the real problems. The code still greys out.
+    virtual_text = { source = true, severity = { min = vim.diagnostic.severity.WARN } },
     virtual_lines = false, -- Text shows up underneath the line, with virtual lines
 
     -- Auto open the float, so you can easily read the errors when jumping with `[d` and `]d`
