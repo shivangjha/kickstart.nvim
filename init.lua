@@ -244,6 +244,30 @@ do
   -- vim.keymap.set("n", "<C-S-j>", "<C-w>J", { desc = "Move window to the lower" })
   -- vim.keymap.set("n", "<C-S-k>", "<C-w>K", { desc = "Move window to the upper" })
 
+  -- Draw a guide at the column each formatter wraps to, per language. A single
+  -- global value would be wrong half the time: biome caps JS/TS at 80
+  -- (biome.json lineWidth), rustfmt defaults to 100, and this repo's stylua is
+  -- set to 160.
+  vim.api.nvim_create_autocmd('FileType', {
+    desc = 'Mark the formatter line width for this filetype',
+    group = vim.api.nvim_create_augroup('kickstart-colorcolumn', { clear = true }),
+    callback = function(event)
+      local widths = {
+        rust = '100',
+        typescript = '80',
+        typescriptreact = '80',
+        javascript = '80',
+        javascriptreact = '80',
+        json = '80',
+        jsonc = '80',
+        css = '80',
+        lua = '160',
+      }
+      local width = widths[vim.bo[event.buf].filetype]
+      if width then vim.wo.colorcolumn = width end
+    end,
+  })
+
   -- [[ Basic Autocommands ]]
   --  See `:help lua-guide-autocommands`
 
