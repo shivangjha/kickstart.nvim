@@ -41,6 +41,8 @@ require('mason-nvim-dap').setup {
   ensure_installed = {
     -- Update this to ensure that you have the debuggers for the langs you want
     'codelldb',
+    -- No JS entry: the sidecar uses bun-dap-x (installed with `bun add -g`),
+    -- not Mason. See the sidecar section at the bottom of this file.
   },
 }
 
@@ -138,3 +140,34 @@ dap.configurations.rust = {
     stopOnEntry = false,
   },
 }
+
+-- Sidecar (TypeScript on bun): ATTACH to the inspector port, don't launch.
+-- The sidecar runs in its own tmux pane and keeps running; you connect and
+-- disconnect at will. Start it with the address and path spelled out:
+--
+--   bun --watch --env-file=../../backend.dev.env --inspect=127.0.0.1:6499/iris run src/main.ts
+--
+-- The explicit 127.0.0.1 matters: given a bare port, bun binds IPv6 loopback
+-- only and nothing can reach it on 127.0.0.1. The /iris suffix pins the path,
+-- which is otherwise random per start.
+--
+-- NOT vscode-js-debug. That adapter speaks Node's V8 inspector protocol; bun
+-- speaks WebKit's. Verified 2026-10-29 by driving both from a standalone DAP
+-- client: Node's session goes live, bun's never binds a breakpoint. bun ships
+-- no standalone adapter of its own (oven-sh/bun#22914), so this uses the
+-- community bridge bun-dap-x, pinned at 0.2.4.
+dap.adapters['bun-dap-x'] = {
+  type = 'executable',
+  command = 'bun-dap-x',
+}
+
+local sidecar_attach = {
+  name = 'attach to sidecar (6499)',
+  type = 'bun-dap-x',
+  request = 'attach',
+  url = 'ws://127.0.0.1:6499/iris',
+  cwd = function() return iris_root() .. '/packages/agent-sidecar-bun' end,
+}
+
+dap.configurations.typescript = { sidecar_attach }
+dap.configurations.javascript = { sidecar_attach }
