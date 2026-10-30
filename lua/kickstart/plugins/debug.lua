@@ -122,6 +122,19 @@ dapui.setup {
 --   vim.fn.sign_define(tp, { text = icon, texthl = hl, numhl = hl })
 -- end
 
+-- termopen turns wrap off when a buffer becomes a terminal, undoing dapui's
+-- setting. Use win_findbuf, not vim.wo: nvim-dap calls termopen inside
+-- nvim_buf_call, so the focused window is not the console one.
+vim.api.nvim_create_autocmd('TermOpen', {
+  desc = 'Re-enable wrap after a terminal takes over a dap buffer',
+  group = vim.api.nvim_create_augroup('kickstart-dap-term-wrap', { clear = true }),
+  callback = function(event)
+    for _, win in ipairs(vim.fn.win_findbuf(event.buf)) do
+      vim.wo[win].wrap = true
+    end
+  end,
+})
+
 -- Only the always-on layouts; 3 stays closed until <leader>dx.
 dap.listeners.after.event_initialized['dapui_config'] = function()
   dapui.open { layout = 1 }
