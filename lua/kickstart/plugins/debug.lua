@@ -143,6 +143,48 @@ vim.api.nvim_create_autocmd('TermOpen', {
   end,
 })
 
+-- Open the file:line under the cursor in a code window. A split from a dap
+-- window would land inside dapui's area, which it reclaims (force_buffers,
+-- dapui/windows/layout.lua:45).
+local function goto_file_under_cursor()
+  local file = vim.fn.expand '<cfile>'
+  if file == '' then return vim.notify('No file under cursor', vim.log.levels.WARN) end
+  local lnum = vim.api.nvim_get_current_line():match(vim.pesc(file) .. ':(%d+)')
+
+  local path = vim.fn.findfile(file, '.;')
+  if path == '' and vim.fn.filereadable(file) == 1 then path = file end
+  if path == '' then return vim.notify('Not found: ' .. file, vim.log.levels.WARN) end
+
+  local target
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    local ft = vim.bo[buf].filetype
+    if vim.bo[buf].buftype == '' and not ft:match '^dapui_' and ft ~= 'dap-repl' then
+      target = win
+      break
+    end
+  end
+  if not target then
+    vim.cmd 'topleft split'
+    target = vim.api.nvim_get_current_win()
+  end
+
+  vim.api.nvim_set_current_win(target)
+  vim.cmd(('edit %s%s'):format(lnum and ('+' .. lnum .. ' ') or '', vim.fn.fnameescape(path)))
+end
+
+vim.api.nvim_create_autocmd({ 'FileType', 'TermOpen' }, {
+  desc = 'Bind gf in dap and terminal windows',
+  group = vim.api.nvim_create_augroup('kickstart-dap-gotofile', { clear = true }),
+  callback = function(event)
+    local ft = vim.bo[event.buf].filetype
+    if vim.bo[event.buf].buftype ~= 'terminal' and not ft:match '^dapui_' and ft ~= 'dap-repl' then return end
+    for _, key in ipairs { 'gf', 'gF' } do
+      vim.keymap.set('n', key, goto_file_under_cursor, { buffer = event.buf, desc = 'Debug: open file under cursor' })
+    end
+  end,
+})
+
 -- Only the always-on layouts; 3 stays closed until <leader>dx.
 dap.listeners.after.event_initialized['dapui_config'] = function()
   dapui.open { layout = 1 }
