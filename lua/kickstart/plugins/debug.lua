@@ -193,63 +193,13 @@ end
 dap.listeners.before.event_terminated['dapui_config'] = dapui.close
 dap.listeners.before.event_exited['dapui_config'] = dapui.close
 
--- Rust: launch the api-server under codelldb.
---
--- There is no auto-build here. VS Code's CodeLLDB `cargo` block is an
--- extension feature with no nvim-dap equivalent, and building synchronously
--- would freeze the editor for the length of an api-server build. So:
---
---   1. cargo build -p api-server      (in :terminal)
---   2. <F5>
---
--- No `env` block: the sidecar transport settings live in backend.dev.env,
--- which the binary reads itself via --env-file.
---
--- The WORKSPACE root, not the nearest crate. `Cargo.toml` as a marker would
--- stop at packages/api-server/, but cargo puts the binary in the workspace's
--- shared target/ directory. Here the git root and the workspace root are the
--- same directory, so `.git` is the reliable marker.
-local function iris_root() return vim.fs.root(0, { '.git' }) or vim.fn.getcwd() end
-
-dap.configurations.rust = {
-  {
-    name = 'api-server',
-    type = 'codelldb',
-    request = 'launch',
-    program = function() return iris_root() .. '/target/debug/api-server' end,
-    args = function() return { '--env-file', iris_root() .. '/backend.dev.env' } end,
-    cwd = function() return iris_root() end,
-    stopOnEntry = false,
-  },
-}
-
--- Sidecar (TypeScript on bun): ATTACH to the inspector port, don't launch.
--- The sidecar runs in its own tmux pane and keeps running; you connect and
--- disconnect at will. Start it with the address and path spelled out:
---
---   bun --watch --env-file=../../backend.dev.env --inspect=127.0.0.1:6499/iris run src/main.ts
---
--- The explicit 127.0.0.1 matters: given a bare port, bun binds IPv6 loopback
--- only and nothing can reach it on 127.0.0.1. The /iris suffix pins the path,
--- which is otherwise random per start.
---
--- NOT vscode-js-debug. That adapter speaks Node's V8 inspector protocol; bun
--- speaks WebKit's. Verified 2026-10-29 by driving both from a standalone DAP
--- client: Node's session goes live, bun's never binds a breakpoint. bun ships
--- no standalone adapter of its own (oven-sh/bun#22914), so this uses the
--- community bridge bun-dap-x, pinned at 0.2.4.
+-- bun speaks WebKit's inspector protocol, not Node's V8 one, so
+-- vscode-js-debug cannot drive it (verified 2026-10-29). bun ships no adapter
+-- of its own (oven-sh/bun#22914); bun-dap-x is the community bridge, at 0.2.4.
 dap.adapters['bun-dap-x'] = {
   type = 'executable',
   command = 'bun-dap-x',
 }
 
-local sidecar_attach = {
-  name = 'attach to sidecar (6499)',
-  type = 'bun-dap-x',
-  request = 'attach',
-  url = 'ws://127.0.0.1:6499/iris',
-  cwd = function() return iris_root() .. '/packages/agent-sidecar-bun' end,
-}
-
-dap.configurations.typescript = { sidecar_attach }
-dap.configurations.javascript = { sidecar_attach }
+-- Launch targets are per project; see lua/custom/dap-projects/.
+require('custom.dap-projects').load()
