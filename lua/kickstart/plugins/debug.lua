@@ -30,6 +30,14 @@ vim.keymap.set('n', '<F7>', function()
 end, { desc = 'Debug: toggle the main UI' })
 vim.keymap.set('n', '<leader>dx', function() require('dapui').toggle { layout = 3 } end, { desc = 'Debug: toggle watches/breakpoints/repl column' })
 vim.keymap.set('n', '<leader>dq', function() require('dapui').close() end, { desc = 'Debug: close all dap windows' })
+-- Toggling reopens at whatever size the windows were left at
+-- (dapui/windows/layout.lua:109). Only `reset` restores the configured size.
+vim.keymap.set('n', '<leader>dr', function()
+  local dapui = require 'dapui'
+  for i, layout in ipairs(require('dapui.windows').layouts) do
+    if layout:is_open() then dapui.open { layout = i, reset = true } end
+  end
+end, { desc = 'Debug: reset dap window sizes' })
 
 local dap = require 'dap'
 local dapui = require 'dapui'
