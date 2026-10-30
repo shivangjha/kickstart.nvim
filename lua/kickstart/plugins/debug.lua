@@ -22,7 +22,14 @@ vim.keymap.set('n', '<F3>', function() require('dap').step_out() end, { desc = '
 vim.keymap.set('n', '<leader>b', function() require('dap').toggle_breakpoint() end, { desc = 'Debug: Toggle Breakpoint' })
 vim.keymap.set('n', '<leader>B', function() require('dap').set_breakpoint(vim.fn.input 'Breakpoint condition: ') end, { desc = 'Debug: Set Breakpoint' })
 -- Toggle to see last session result. Without this, you can't see session output in case of unhandled exception.
-vim.keymap.set('n', '<F7>', function() require('dapui').toggle() end, { desc = 'Debug: See last session result.' })
+-- Only layouts 1 and 2 — layout 3 has its own toggle below.
+vim.keymap.set('n', '<F7>', function()
+  local dapui = require 'dapui'
+  dapui.toggle { layout = 1 }
+  dapui.toggle { layout = 2 }
+end, { desc = 'Debug: toggle the main UI' })
+vim.keymap.set('n', '<leader>dx', function() require('dapui').toggle { layout = 3 } end, { desc = 'Debug: toggle watches/breakpoints/repl column' })
+vim.keymap.set('n', '<leader>dq', function() require('dapui').close() end, { desc = 'Debug: close all dap windows' })
 
 local dap = require 'dap'
 local dapui = require 'dapui'
@@ -56,27 +63,28 @@ dapui.setup {
   -- Applied to every dapui window (dapui/windows/layout.lua:181).
   wrap = true,
 
+  -- 1 and 2 open with the session; 3 is toggled with <leader>dx.
+  -- Console is listed FIRST so it opens LAST (dapui opens layouts in reverse)
+  -- and spans the full width instead of being cut short by the left column.
   layouts = {
     {
-      elements = {
-        { id = 'scopes', size = 0.25 },
-        'breakpoints',
-        'stacks',
-        'watches',
-      },
+      elements = { { id = 'console', size = 1.0 } },
+      size = 12,
+      position = 'bottom',
+    },
+    {
+      elements = { { id = 'scopes', size = 0.65 }, { id = 'stacks', size = 0.35 } },
       size = 40,
       position = 'left',
     },
     {
-      -- `console` is the debugged program's own stdout — the pane you actually
-      -- read when something fails at startup. Give it the bulk. The repl is
-      -- rarely useful with LLDB on Rust, so it gets a strip on the right.
       elements = {
-        { id = 'console', size = 0.75 },
-        { id = 'repl', size = 0.25 },
+        { id = 'watches', size = 0.3 },
+        { id = 'breakpoints', size = 0.2 },
+        { id = 'repl', size = 0.5 },
       },
-      size = 12,
-      position = 'bottom',
+      size = 40,
+      position = 'right',
     },
   },
   -- Set icons to characters that are more likely to work in every terminal.
@@ -85,6 +93,9 @@ dapui.setup {
   icons = { expanded = '▾', collapsed = '▸', current_frame = '*' },
   ---@diagnostic disable-next-line: missing-fields
   controls = {
+    -- Default is 'repl', which now lives in the toggled column — the control
+    -- bar would be hidden with it. Console is always open.
+    element = 'console',
     icons = {
       pause = '⏸',
       play = '▶',
@@ -111,7 +122,11 @@ dapui.setup {
 --   vim.fn.sign_define(tp, { text = icon, texthl = hl, numhl = hl })
 -- end
 
-dap.listeners.after.event_initialized['dapui_config'] = dapui.open
+-- Only the always-on layouts; 3 stays closed until <leader>dx.
+dap.listeners.after.event_initialized['dapui_config'] = function()
+  dapui.open { layout = 1 }
+  dapui.open { layout = 2 }
+end
 dap.listeners.before.event_terminated['dapui_config'] = dapui.close
 dap.listeners.before.event_exited['dapui_config'] = dapui.close
 
